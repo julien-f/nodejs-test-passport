@@ -1,0 +1,15 @@
+{
+  // Port of the HTTP server.
+  //
+  // Default to random.
+  //"httpPort": 80,
+
+  // Secret is a unique and secret generated string which is used by
+  // the application to validate the sessions.
+  //
+  // Generates one here https://www.random.org/strings/?num=1&len=20&digits=on&upperalpha=on&loweralpha=on&unique=off&format=plain&rnd=new
+  "sessionSecret": "RO9nCN2mXq11fBsx9zhN",
+
+  // Directory from where are served the static files.
+  "staticFilesDir": "./web/dist"
+}
