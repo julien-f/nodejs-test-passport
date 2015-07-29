@@ -144,7 +144,7 @@ export default async function (args) {
     // The user has been authenticated, returns its record.
     done(null, user)
   }))
-  app.post('/signin', passport.authenticate('local', {
+  app.post('/signin/local', passport.authenticate('local', {
     successRedirect: '/',
     failureRedirect: '/',
     failureFlash: true
@@ -156,11 +156,12 @@ export default async function (args) {
 <html>
   <body>
     ${req.flash('error')}
-    <form method="post">
+    <form method="post" action="/signin/local">
       <input type="text" name="username">
       <input type="password" name="password">
       <input type="submit">
     </form>
+    <a href="/signin/github">Sign in with GitHub</a>
   </body>
 </html>
 `)
