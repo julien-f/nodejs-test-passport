@@ -4,26 +4,57 @@ import cookieParser from 'cookie-parser'
 import eventToPromise from 'event-to-promise'
 import express from 'express'
 import expressSession from 'express-session'
+import GitHubStrategy from 'passport-github2'
 import minimist from 'minimist'
 import passport from 'passport'
 import {assign, find} from 'lodash'
 import {load as loadConfig} from 'app-conf'
 import {Strategy as LocalStrategy} from 'passport-local'
 
-const users = [
-  {
-    id: 'VntFCHMBWIvLahm',
-    name: 'barbara.gordon',
-    password: 'IAmBatgirl',
-    age: 37
-  },
-  {
-    id: 'GRXgFLzNNfKAM',
-    name: 'bruce.wayne',
-    password: 'IAmBatman',
-    age: 45
+// -------------------------------------------------------------------
+
+class Users {
+  constructor () {
+    this._users = Object.create(null)
   }
-]
+
+  getById (id) {
+    return this._users[id]
+  }
+
+  getByName (name) {
+    return find(this._users, user => user.name === name)
+  }
+
+  register (provider, id, name) {
+    id = `${provider}:${id}`
+
+    let user = this.getById(id)
+    if (!user) {
+      if (this.getByName(name)) {
+        throw new Error(`the name ${name} is already taken`)
+      }
+
+      user = this._users[id] = {id, name}
+    } else if (user.name !== name) {
+      throw new Error(`name conflict ${name} != ${user.name}`)
+    }
+
+    return user
+  }
+}
+
+const users = new Users()
+assign(users.register('local', 'VntFCHMBWIvLahm', 'barbara.gordon'), {
+  password: 'IAmBatgirl',
+  age: 37
+})
+assign(users.register('local', 'GRXgFLzNNfKAM', 'bruce.wayne'), {
+  password: 'IAmBatman',
+  age: 45
+})
+
+// -------------------------------------------------------------------
 
 export default async function (args) {
   // Parses the options from the command line arguments.
@@ -41,7 +72,7 @@ export default async function (args) {
     done(null, user.id)
   })
   passport.deserializeUser((id, done) => {
-    const user = find(users, {id})
+    const user = users.getById(id)
     if (!user) {
       done('the user could not be found')
       return
@@ -49,24 +80,6 @@ export default async function (args) {
 
     done(null, user)
   })
-
-  // Registers the local strategy in passport.
-  passport.use(new LocalStrategy((name, password, done) => {
-    const user = find(users, {name, password})
-    if (!user) {
-      done(
-        null,  // There were no errors during the authentication process.
-        false, // But the user could not be authenticated.
-        {
-          message: 'invalid username or password'
-        }
-      )
-      return
-    }
-
-    // The user has been authenticated, returns its record.
-    done(null, user)
-  }))
 
   // Creates the Express application.
   const app = express()
@@ -92,6 +105,51 @@ export default async function (args) {
   app.use(passport.initialize())
   app.use(passport.session())
 
+  // Registers the GitHub strategy in Passport.
+  passport.use(new GitHubStrategy(
+    config.authProviders.github,
+    (accessToken, refreshToken, profile, done) => {
+      done(null, users.register('github', profile.id, profile.username))
+    })
+  )
+
+  // Registers the GitHub strategy in Passport.
+  app.get(
+    '/signin/github',
+    passport.authenticate('github', { scope: [ 'user:email' ] })
+  )
+  app.get(
+    '/signin/github/callback',
+    passport.authenticate('github', {
+      successRedirect: '/',
+      failureRedirect: '/',
+      failureFlash: true
+    })
+  )
+
+  // Registers the local strategy in Passport.
+  passport.use(new LocalStrategy((name, password, done) => {
+    const user = users.getByName(name)
+    if (!user || user.password !== password) {
+      done(
+        null,  // There were no errors during the authentication process.
+        false, // But the user could not be authenticated.
+        {
+          message: 'invalid username or password'
+        }
+      )
+      return
+    }
+
+    // The user has been authenticated, returns its record.
+    done(null, user)
+  }))
+  app.post('/signin', passport.authenticate('local', {
+    successRedirect: '/',
+    failureRedirect: '/',
+    failureFlash: true
+  }))
+
   // Registers the sign in form.
   app.get('/signin', (req, res) => {
     res.send(`
@@ -107,15 +165,6 @@ export default async function (args) {
 </html>
 `)
   })
-
-  // Registers the sign in handler.
-  //
-  // See http://passportjs.org/docs/authenticate
-  app.post('/signin', passport.authenticate('local', {
-    successRedirect: '/',
-    // failureRedirect: '/signin',
-    failureFlash: true
-  }))
 
   // Prevents access to other pages if not signed in.
   app.use((req, res, next) => {
@@ -148,7 +197,9 @@ export default async function (args) {
   // serving.
   //
   // See http://expressjs.com/starter/static-files.html
-  app.use(express.static(config.staticFilesDir))
+  if (config.staticFilesDir) {
+    app.use(express.static(config.staticFilesDir))
+  }
 
   // Creates an HTTP server and makes it listen.
   const server = app.listen(config.httpPort, () => {

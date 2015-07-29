@@ -1,8 +1,16 @@
 {
+  "authProviders": {
+    "github": {
+      "clientID": "6dcaf3ea09148decd0b9",
+      "clientSecret": "7b023ce9080333fbf4498b33ffbcd8e4ca454d84",
+      "callbackUrl": "http://localhost:1024/signin/github/callback"
+    }
+  },
+
   // Port of the HTTP server.
   //
   // Default to random.
-  //"httpPort": 80,
+  "httpPort": 33161,
 
   // Secret is a unique and secret generated string which is used by
   // the application to validate the sessions.
