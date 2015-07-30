@@ -9,7 +9,10 @@ import minimist from 'minimist'
 import passport from 'passport'
 import {assign, find} from 'lodash'
 import {load as loadConfig} from 'app-conf'
+import {OAuthStrategy as GoogleStrategy} from 'passport-google-oauth'
+import {Strategy as FacebookStrategy} from 'passport-facebook'
 import {Strategy as LocalStrategy} from 'passport-local'
+import {Strategy as SamlStrategy} from 'passport-saml'
 
 // -------------------------------------------------------------------
 
@@ -105,27 +108,117 @@ export default async function (args) {
   app.use(passport.initialize())
   app.use(passport.session())
 
-  // Registers the GitHub strategy in Passport.
-  passport.use(new GitHubStrategy(
-    config.authProviders.github,
-    (accessToken, refreshToken, profile, done) => {
-      done(null, users.register('github', profile.id, profile.username))
-    })
-  )
+  // -----------------------------------------------------------------
+  // Facebook
 
-  // Registers the GitHub strategy in Passport.
-  app.get(
-    '/signin/github',
-    passport.authenticate('github', { scope: [ 'user:email' ] })
-  )
-  app.get(
-    '/signin/github/callback',
-    passport.authenticate('github', {
-      successRedirect: '/',
-      failureRedirect: '/',
-      failureFlash: true
-    })
-  )
+  if (config.authProviders.facebook) {
+    passport.use(new FacebookStrategy(
+      config.authProviders.facebook,
+      (accessToken, refreshToken, profile, done) => {
+
+      })
+    )
+
+    app.get(
+      '/signin/facebook',
+      passport.authenticate('facebook')
+    )
+    app.get(
+      '/signin/facebook/callback',
+      passport.authenticate('facebook', {
+        successRedirect: '/',
+        failureRedirect: '/',
+        failureFlash: true
+      })
+    )
+  }
+
+  // -----------------------------------------------------------------
+  // GitHub
+
+  if (config.authProviders.github) {
+    passport.use(new GitHubStrategy(
+      config.authProviders.github,
+      (accessToken, refreshToken, profile, done) => {
+        done(null, users.register('github', profile.id, profile.username))
+      })
+    )
+
+    app.get(
+      '/signin/github',
+      passport.authenticate('github', {
+        scope: [ 'user:email' ]
+      })
+    )
+    app.get(
+      '/signin/github/callback',
+      passport.authenticate('github', {
+        successRedirect: '/',
+        failureRedirect: '/',
+        failureFlash: true
+      })
+    )
+  }
+
+  // -----------------------------------------------------------------
+  // Google
+
+  if (config.authProviders.google) {
+    passport.use(new GoogleStrategy(
+      config.authProviders.google,
+      (accessToken, refreshToken, profile, done) => {
+        done(null, users.register('google', profile.id, profile.username))
+      })
+    )
+
+    app.get(
+      '/signin/google',
+      passport.authenticate('google', {
+        scope: 'https://wwww.googleapis.com/auth/plus.login'
+      })
+    )
+    app.get(
+      '/signin/google/callback',
+      passport.authenticate('google', {
+        successRedirect: '/',
+        failureRedirect: '/',
+        failureFlash: true
+      })
+    )
+  }
+
+  // -----------------------------------------------------------------
+  // SAML
+
+  if (config.authProviders.saml) {
+    passport.use(new SamlStrategy(
+      config.authProviders.saml,
+      (profile, done) => {
+        console.log(profile)
+        done('not implemented')
+      }
+    ))
+
+    app.get(
+      '/signin/saml',
+      passport.authenticate('saml', {
+        successRedirect: '/',
+        failureRedirect: '/',
+        failureFlash: true
+      })
+    )
+    app.post(
+      '/signin/saml/callback',
+      passport.authenticate('saml', {
+        successRedirect: '/',
+        failureRedirect: '/',
+        failureFlash: true
+      })
+    )
+  }
+
+  // -----------------------------------------------------------------
+  // Local
 
   // Registers the local strategy in Passport.
   passport.use(new LocalStrategy((name, password, done) => {
@@ -144,11 +237,14 @@ export default async function (args) {
     // The user has been authenticated, returns its record.
     done(null, user)
   }))
+
   app.post('/signin/local', passport.authenticate('local', {
     successRedirect: '/',
     failureRedirect: '/',
     failureFlash: true
   }))
+
+  // -----------------------------------------------------------------
 
   // Registers the sign in form.
   app.get('/signin', (req, res) => {
@@ -161,7 +257,12 @@ export default async function (args) {
       <input type="password" name="password">
       <input type="submit">
     </form>
-    <a href="/signin/github">Sign in with GitHub</a>
+    <ul>
+      <li><a href="/signin/facebook">Sign in with Facebook</a></li>
+      <li><a href="/signin/github">Sign in with GitHub</a></li>
+      <li><a href="/signin/google">Sign in with Google</a></li>
+      <li><a href="/signin/saml">Sign in with SAML</a></li>
+    </ul>
   </body>
 </html>
 `)

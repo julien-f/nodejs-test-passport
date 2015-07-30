@@ -1,10 +1,23 @@
 {
   "authProviders": {
+    // "facebook" : {
+    //   "clientID": "",
+    //   "clientSecret": "",
+    //   "callbackURL": "http://localhost:1024/signin/facebook/callback"
+    // },
+
     "github": {
       "clientID": "6dcaf3ea09148decd0b9",
-      "clientSecret": "7b023ce9080333fbf4498b33ffbcd8e4ca454d84",
-      "callbackUrl": "http://localhost:1024/signin/github/callback"
-    }
+      "clientSecret": "7b023ce9080333fbf4498b33ffbcd8e4ca454d84"
+    },
+
+    // "google": {
+    //   "clientID": "",
+    //   "clientSecret": "",
+    //   "callbackURL": "http://localhost:1024/signin/google/callback"
+    // },
+
+    "_comment": "just to avoid the need to quote the last ,"
   },
 
   // Port of the HTTP server.

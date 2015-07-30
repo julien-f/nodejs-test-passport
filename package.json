@@ -34,8 +34,11 @@
     "lodash": "^3.10.0",
     "minimist": "^1.1.2",
     "passport": "^0.2.2",
+    "passport-facebook": "^2.0.0",
     "passport-github2": "^0.1.9",
+    "passport-google-oauth": "^0.2.0",
     "passport-local": "^1.0.0",
+    "passport-saml": "^0.10.0",
     "strip-json-comments": "^1.0.2"
   },
   "devDependencies": {
